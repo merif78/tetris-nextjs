@@ -92,6 +92,19 @@ export function canMovePiece(
   return true;
 }
 
+export function getGhostPieceY(
+  board: number[][],
+  piece: Tetromino,
+  x: number,
+  startY: number
+): number {
+  let y = startY;
+  while (canMovePiece(board, piece, x, y + 1)) {
+    y++;
+  }
+  return y;
+}
+
 export function placePiece(
   board: number[][],
   piece: Tetromino,
