@@ -8,6 +8,7 @@ import {
   movePieceLeft,
   movePieceRight,
   rotatePieceInGame,
+  instantDrop,
   getColor,
 } from '@/lib/tetris';
 
@@ -27,7 +28,9 @@ export default function TetrisGame() {
     if (!gameState) return;
 
     const handleKeyPress = (e: KeyboardEvent) => {
+      // Allow space and restart even during game over, but block other controls
       if (gameState.gameOver && e.key !== ' ') return;
+      if (gameState.isPaused && e.key !== ' ' && e.key !== 'p' && e.key !== 'P') return;
 
       switch (e.key) {
         case 'ArrowLeft':
@@ -48,18 +51,13 @@ export default function TetrisGame() {
           break;
         case ' ':
           e.preventDefault();
-          setGameState((prev) => {
-            if (!prev) return prev;
-            // Drop piece instantly
-            let currentState = prev;
-            while (true) {
-              const nextState = movePieceDown(currentState);
-              if (nextState === currentState || nextState.gameOver) {
-                return nextState;
-              }
-              currentState = nextState;
-            }
-          });
+          // Use instantDrop from lib/tetris.ts
+          setGameState((prev) => (prev && !prev.isPaused ? instantDrop(prev) : prev));
+          break;
+        case 'p':
+        case 'P':
+          e.preventDefault();
+          setGameState((prev) => (prev ? { ...prev, isPaused: !prev.isPaused } : prev));
           break;
         default:
           break;
