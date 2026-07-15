@@ -191,6 +191,28 @@ export function movePieceDown(state: GameState): GameState {
   };
 }
 
+export function instantDrop(state: GameState): GameState {
+  // Find the lowest position where the piece can be
+  let currentState = state;
+  let lastValidState = state;
+
+  // Keep moving down until we hit something
+  while (true) {
+    const nextState = movePieceDown(currentState);
+    // If the state didn't change (piece landed), we're done
+    if (nextState.board === currentState.board && nextState.currentY === currentState.currentY) {
+      return nextState;
+    }
+    lastValidState = currentState;
+    currentState = nextState;
+
+    // Prevent infinite loops
+    if (currentState.gameOver) {
+      return currentState;
+    }
+  }
+}
+
 export function movePieceLeft(state: GameState): GameState {
   if (canMovePiece(state.board, state.currentPiece, state.currentX - 1, state.currentY)) {
     return { ...state, currentX: state.currentX - 1 };
