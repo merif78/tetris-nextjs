@@ -1,4 +1,4 @@
-export type Tetromino = number[][][];
+export type Tetromino = number[][];
 
 export interface GameState {
   board: number[][];
@@ -13,39 +13,19 @@ export interface GameState {
 
 const TETROMINOES: Tetromino[] = [
   // I
-  [
-    [1, 1, 1, 1],
-  ],
+  [[1, 1, 1, 1]],
   // O
-  [
-    [2, 2],
-    [2, 2],
-  ],
+  [[2, 2], [2, 2]],
   // T
-  [
-    [0, 3, 0],
-    [3, 3, 3],
-  ],
+  [[0, 3, 0], [3, 3, 3]],
   // S
-  [
-    [0, 4, 4],
-    [4, 4, 0],
-  ],
+  [[0, 4, 4], [4, 4, 0]],
   // Z
-  [
-    [5, 5, 0],
-    [0, 5, 5],
-  ],
+  [[5, 5, 0], [0, 5, 5]],
   // J
-  [
-    [6, 0, 0],
-    [6, 6, 6],
-  ],
+  [[6, 0, 0], [6, 6, 6]],
   // L
-  [
-    [0, 0, 7],
-    [7, 7, 7],
-  ],
+  [[0, 0, 7], [7, 7, 7]],
 ];
 
 const BOARD_WIDTH = 10;
@@ -91,8 +71,11 @@ export function canMovePiece(
   y: number
 ): boolean {
   for (let row = 0; row < piece.length; row++) {
-    for (let col = 0; col < piece[row].length; col++) {
-      if (piece[row][col] === 0) continue;
+    const currentRow = piece[row];
+    if (!Array.isArray(currentRow)) continue;
+
+    for (let col = 0; col < currentRow.length; col++) {
+      if (currentRow[col] === 0) continue;
 
       const newX = x + col;
       const newY = y + row;
@@ -118,12 +101,15 @@ export function placePiece(
   const newBoard = board.map((row) => [...row]);
 
   for (let row = 0; row < piece.length; row++) {
-    for (let col = 0; col < piece[row].length; col++) {
-      if (piece[row][col] === 0) continue;
+    const currentRow = piece[row];
+    if (!Array.isArray(currentRow)) continue;
+
+    for (let col = 0; col < currentRow.length; col++) {
+      if (currentRow[col] === 0) continue;
 
       const newY = y + row;
       if (newY >= 0 && newY < BOARD_HEIGHT) {
-        newBoard[newY][x + col] = piece[row][col];
+        newBoard[newY][x + col] = currentRow[col];
       }
     }
   }
@@ -144,10 +130,16 @@ export function clearLines(board: number[][]): { board: number[][]; linesCleared
 
 export function rotatePiece(piece: Tetromino): Tetromino {
   const rotated: Tetromino = [];
-  for (let col = 0; col < piece[0].length; col++) {
+  const firstRow = piece[0];
+  if (!Array.isArray(firstRow)) return piece;
+
+  for (let col = 0; col < firstRow.length; col++) {
     const newRow: number[] = [];
     for (let row = piece.length - 1; row >= 0; row--) {
-      newRow.push(piece[row][col]);
+      const currentRow = piece[row];
+      if (Array.isArray(currentRow)) {
+        newRow.push(currentRow[col]);
+      }
     }
     rotated.push(newRow);
   }
