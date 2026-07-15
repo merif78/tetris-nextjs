@@ -17,6 +17,7 @@ export default function TetrisGame() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [dropSpeed, setDropSpeed] = useState(1000);
   const isDroppingRef = useRef(false);
+  const lastDropTimeRef = useRef(0);
 
   // Initialize game on mount
   useEffect(() => {
@@ -80,35 +81,21 @@ export default function TetrisGame() {
     };
   }, [gameState]);
 
-  // Game loop for piece dropping
+  // Single game loop with dynamic speed
   useEffect(() => {
     if (!gameState || gameState.gameOver || gameState.isPaused) return;
 
     const interval = setInterval(() => {
-      // Use faster drop speed when spacebar is pressed
-      const currentDropSpeed = isDroppingRef.current ? 50 : dropSpeed;
+      const now = Date.now();
+      // Determine current drop speed interval
+      const currentInterval = isDroppingRef.current ? 50 : dropSpeed;
       
-      // Only drop if enough time has passed
-      setGameState((prev) => {
-        if (!prev) return prev;
-        // Check if this is a fast drop interval
-        if (isDroppingRef.current) {
-          return movePieceDown(prev);
-        }
-        return movePieceDown(prev);
-      });
-    }, 50); // Always use 50ms interval, but check dropSpeed for normal speed
-
-    return () => clearInterval(interval);
-  }, [gameState, dropSpeed]);
-
-  // Separate interval for normal speed drops
-  useEffect(() => {
-    if (!gameState || gameState.gameOver || gameState.isPaused || isDroppingRef.current) return;
-
-    const interval = setInterval(() => {
-      setGameState((prev) => (prev ? movePieceDown(prev) : prev));
-    }, dropSpeed);
+      // Only drop if enough time has passed since last drop
+      if (now - lastDropTimeRef.current >= currentInterval) {
+        lastDropTimeRef.current = now;
+        setGameState((prev) => (prev ? movePieceDown(prev) : prev));
+      }
+    }, 16); // ~60fps update rate
 
     return () => clearInterval(interval);
   }, [gameState, dropSpeed]);
@@ -116,6 +103,7 @@ export default function TetrisGame() {
   const handleRestart = () => {
     setGameState(initializeGame());
     isDroppingRef.current = false;
+    lastDropTimeRef.current = 0;
   };
 
   const handleSpeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
