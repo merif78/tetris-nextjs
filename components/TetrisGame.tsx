@@ -8,7 +8,6 @@ import {
   movePieceLeft,
   movePieceRight,
   rotatePieceInGame,
-  instantDrop,
   getColor,
 } from '@/lib/tetris';
 
@@ -17,6 +16,7 @@ const CELL_SIZE = 25;
 export default function TetrisGame() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [dropSpeed, setDropSpeed] = useState(1000);
+  const [isDropping, setIsDropping] = useState(false);
 
   // Initialize game on mount
   useEffect(() => {
@@ -27,7 +27,7 @@ export default function TetrisGame() {
   useEffect(() => {
     if (!gameState) return;
 
-    const handleKeyPress = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       // Allow space and restart even during game over, but block other controls
       if (gameState.gameOver && e.key !== ' ') return;
       if (gameState.isPaused && e.key !== ' ' && e.key !== 'p' && e.key !== 'P') return;
@@ -51,8 +51,8 @@ export default function TetrisGame() {
           break;
         case ' ':
           e.preventDefault();
-          // Use instantDrop from lib/tetris.ts
-          setGameState((prev) => (prev && !prev.isPaused ? instantDrop(prev) : prev));
+          // Start fast drop
+          setIsDropping(true);
           break;
         case 'p':
         case 'P':
@@ -64,23 +64,39 @@ export default function TetrisGame() {
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === ' ') {
+        e.preventDefault();
+        // Stop fast drop
+        setIsDropping(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
   }, [gameState]);
 
   // Game loop for piece dropping
   useEffect(() => {
     if (!gameState || gameState.gameOver || gameState.isPaused) return;
 
+    // Use faster drop speed when spacebar is pressed
+    const currentDropSpeed = isDropping ? 50 : dropSpeed;
+
     const interval = setInterval(() => {
       setGameState((prev) => (prev ? movePieceDown(prev) : prev));
-    }, dropSpeed);
+    }, currentDropSpeed);
 
     return () => clearInterval(interval);
-  }, [gameState, dropSpeed]);
+  }, [gameState, dropSpeed, isDropping]);
 
   const handleRestart = () => {
     setGameState(initializeGame());
+    setIsDropping(false);
   };
 
   const handleSpeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -284,7 +300,7 @@ export default function TetrisGame() {
                 <span className="font-semibold">↓</span> : Drop slower
               </li>
               <li>
-                <span className="font-semibold">Space</span> : Drop instantly
+                <span className="font-semibold">Space</span> : Fast drop (hold)
               </li>
               <li>
                 <span className="font-semibold">P</span> : Pause/Resume
