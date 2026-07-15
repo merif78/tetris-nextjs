@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   GameState,
   initializeGame,
@@ -16,7 +16,7 @@ const CELL_SIZE = 25;
 export default function TetrisGame() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [dropSpeed, setDropSpeed] = useState(1000);
-  const [isDropping, setIsDropping] = useState(false);
+  const isDroppingRef = useRef(false);
 
   // Initialize game on mount
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function TetrisGame() {
         case ' ':
           e.preventDefault();
           // Start fast drop
-          setIsDropping(true);
+          isDroppingRef.current = true;
           break;
         case 'p':
         case 'P':
@@ -68,7 +68,7 @@ export default function TetrisGame() {
       if (e.key === ' ') {
         e.preventDefault();
         // Stop fast drop
-        setIsDropping(false);
+        isDroppingRef.current = false;
       }
     };
 
@@ -84,19 +84,38 @@ export default function TetrisGame() {
   useEffect(() => {
     if (!gameState || gameState.gameOver || gameState.isPaused) return;
 
-    // Use faster drop speed when spacebar is pressed
-    const currentDropSpeed = isDropping ? 50 : dropSpeed;
+    const interval = setInterval(() => {
+      // Use faster drop speed when spacebar is pressed
+      const currentDropSpeed = isDroppingRef.current ? 50 : dropSpeed;
+      
+      // Only drop if enough time has passed
+      setGameState((prev) => {
+        if (!prev) return prev;
+        // Check if this is a fast drop interval
+        if (isDroppingRef.current) {
+          return movePieceDown(prev);
+        }
+        return movePieceDown(prev);
+      });
+    }, 50); // Always use 50ms interval, but check dropSpeed for normal speed
+
+    return () => clearInterval(interval);
+  }, [gameState, dropSpeed]);
+
+  // Separate interval for normal speed drops
+  useEffect(() => {
+    if (!gameState || gameState.gameOver || gameState.isPaused || isDroppingRef.current) return;
 
     const interval = setInterval(() => {
       setGameState((prev) => (prev ? movePieceDown(prev) : prev));
-    }, currentDropSpeed);
+    }, dropSpeed);
 
     return () => clearInterval(interval);
-  }, [gameState, dropSpeed, isDropping]);
+  }, [gameState, dropSpeed]);
 
   const handleRestart = () => {
     setGameState(initializeGame());
-    setIsDropping(false);
+    isDroppingRef.current = false;
   };
 
   const handleSpeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
